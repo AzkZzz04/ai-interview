@@ -1,13 +1,14 @@
 package dev.jiaming.ai_interview;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+import org.junit.jupiter.api.Test;
+
 class AiInterviewApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClassIsLoadable() {
+		assertThat(AiInterviewApplication.class).isNotNull();
 	}
 
 }

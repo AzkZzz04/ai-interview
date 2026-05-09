@@ -23,13 +23,22 @@ repositories {
 	mavenCentral()
 }
 
-extra["springAiVersion"] = "2.0.0-M3"
+extra["springAiVersion"] = "2.0.0-M4"
 
 dependencies {
+	implementation("org.flywaydb:flyway-core")
+	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
+	implementation("org.springframework.ai:spring-ai-google-genai-embedding")
+	implementation("org.springframework.ai:spring-ai-starter-model-google-genai")
 	implementation("org.springframework.ai:spring-ai-starter-vector-store-pgvector")
+	implementation("org.apache.pdfbox:pdfbox:3.0.5")
+	implementation("org.apache.tika:tika-core:3.2.3")
+	implementation("org.apache.tika:tika-parsers-standard-package:3.2.3")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
 	annotationProcessor("org.projectlombok:lombok")

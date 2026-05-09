@@ -1,3 +1,75 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: ai_interview
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/interview_guide}
+    username: ${DATABASE_USERNAME:ai_interview}
+    password: ${DATABASE_PASSWORD:ai_interview}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  servlet:
+    multipart:
+      max-file-size: ${RESUME_MAX_FILE_SIZE:10MB}
+      max-request-size: ${RESUME_MAX_REQUEST_SIZE:12MB}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  ai:
+    model:
+      chat: ${AI_CHAT_MODEL:google-genai}
+      embedding:
+        text: ${AI_EMBEDDING_MODEL:google-genai}
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+            temperature: ${GEMINI_CHAT_TEMPERATURE:0.2}
+        embedding:
+          api-key: ${GEMINI_API_KEY:}
+          text:
+            options:
+              model: ${GEMINI_EMBEDDING_MODEL:text-embedding-004}
+              task-type: RETRIEVAL_DOCUMENT
+              dimensions: ${GEMINI_EMBEDDING_DIMENSIONS:768}
+    vectorstore:
+      pgvector:
+        initialize-schema: false
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: ${RAG_EMBEDDING_DIMENSIONS:768}
+        schema-name: public
+        table-name: vector_store
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  gemini:
+    request-timeout-seconds: ${GEMINI_REQUEST_TIMEOUT_SECONDS:90}
+    max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
+    thinking-budget: ${GEMINI_THINKING_BUDGET:0}
+  rag:
+    embedding-dimensions: ${RAG_EMBEDDING_DIMENSIONS:768}
+    default-top-k: ${RAG_DEFAULT_TOP_K:8}
+  storage:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    bucket: ${S3_BUCKET:ai-interview}
+    access-key: ${S3_ACCESS_KEY:ai_interview}
+    secret-key: ${S3_SECRET_KEY:ai_interview_secret}
