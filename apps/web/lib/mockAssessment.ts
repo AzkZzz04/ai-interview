@@ -16,6 +16,7 @@ export type Assessment = {
     message: string;
   }>;
   modelProvider?: string;
+  sourceContextIds?: string[];
 };
 
 export type InterviewQuestion = {
@@ -24,6 +25,7 @@ export type InterviewQuestion = {
   difficulty: "Warmup" | "Core" | "Deep Dive";
   questionText: string;
   expectedSignals: string[];
+  sourceContextIds?: string[];
 };
 
 export type AnswerFeedback = {
@@ -35,6 +37,7 @@ export type AnswerFeedback = {
   betterAnswerOutline?: string[];
   followUpQuestion?: string;
   modelProvider?: string;
+  sourceContextIds?: string[];
 };
 
 const technicalTerms = [

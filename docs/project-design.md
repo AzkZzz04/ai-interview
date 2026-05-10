@@ -5,9 +5,9 @@
 Build a text-first resume and interview preparation application for technical job seekers.
 Users upload a resume, optionally provide a job description, receive a structured resume strength assessment, then answer generated interview questions and get feedback.
 
-The first version should avoid video, audio, live coding, and complex collaboration features. It should focus on reliable text extraction, useful scoring, role-aware question generation, and clear feedback loops.
+The initial release should avoid video, audio, live coding, and complex collaboration features. It should focus on reliable text extraction, useful scoring, role-aware question generation, and clear feedback loops.
 
-## Version 1 Scope
+## Initial Scope
 
 ### In Scope
 
@@ -64,7 +64,7 @@ The first version should avoid video, audio, live coding, and complex collaborat
 - PostgreSQL as primary relational database.
 - pgvector for RAG retrieval across resume, job description, question, and answer embeddings.
 - Redis for rate limiting, short-lived workflow state, and background job locks.
-- RustFS or MinIO-compatible S3 storage later for original resume files and generated artifacts.
+- LocalStack S3-compatible storage for local original resume files and generated artifacts.
 - Docker Compose for local development.
 - OpenTelemetry for traces and metrics.
 - Prometheus and Grafana later, once the service has meaningful traffic.
@@ -72,11 +72,11 @@ The first version should avoid video, audio, live coding, and complex collaborat
 
 ### AI Provider
 
-Gemini is the V1 AI provider.
+Gemini is the initial AI provider.
 
 - Chat model: Google GenAI through Spring AI, starting with `gemini-2.5-flash` for fast structured generation.
 - Thinking config: set `GEMINI_THINKING_BUDGET=0` for Gemini 2.5 Flash in the first text-only workflow to reduce latency.
-- Embedding model: Google GenAI text embeddings, starting with `text-embedding-004` at 768 dimensions.
+- Embedding model: Google GenAI text embeddings, starting with `gemini-embedding-001` configured to 1024 dimensions.
 - Authentication: `GEMINI_API_KEY` for local development through the Gemini Developer API; Vertex AI credentials can be added later for production.
 - Backend config: keep chat and embedding models disabled by default for local startup, then enable with `AI_CHAT_MODEL=google-genai` and `AI_EMBEDDING_MODEL=google-genai`.
 
@@ -84,41 +84,36 @@ Abstract Gemini usage behind backend services even though it is the chosen provi
 
 ## Target Repository Structure
 
-The current repository is a Spring Boot root project. For a full-stack product, use a monorepo layout:
+The current repository keeps the Spring Boot backend at the root and the Next.js frontend under `apps/web`.
+Keep the backend package tree shallow while the product is still small:
 
 ```text
 ai_interview/
+  src/main/java/dev/jiaming/ai_interview/
+    assessment/                  # HTTP endpoint for resume assessment
+    coach/                       # AI workflow orchestration and response contracts
+    common/                      # API errors, config, local user helper
+    gemini/                      # Gemini client boundary
+    interview/                   # Interview endpoints and persistence
+    rag/                         # RAG indexing and retrieval
+    resume/                      # Upload, extraction, chunking, latest-resume persistence
+    storage/                     # S3-compatible object storage
+  src/main/resources/
+    db/migration/                # Flyway migrations; versioned names are expected here
+    prompts/
+  src/test/java/dev/jiaming/ai_interview/
   apps/
-    api/                         # Spring Boot backend
-      src/main/java/dev/jiaming/ai_interview/
-      src/main/resources/
-      src/test/java/dev/jiaming/ai_interview/
-      build.gradle.kts
     web/                         # Next.js frontend
       app/
-      components/
-      features/
       lib/
-      public/
       package.json
-  packages/
-    contracts/                   # Optional generated OpenAPI client/types
-  infra/
-    docker-compose.yml
-    postgres/
-      init-pgvector.sql
-    rustfs/
-    observability/
   docs/
     project-design.md
-    api.md
-    prompts.md
-  .github/workflows/
-  settings.gradle.kts
+  docker-compose.yml             # Local PostgreSQL, Redis, LocalStack
   README.md
 ```
 
-For the next implementation step, either keep the Spring Boot app at the repository root temporarily or move it under `apps/api`. Moving early is cleaner if the Next.js frontend will be added immediately.
+If the backend grows enough to need independent deployment or multiple services, move it to `apps/api` later. Do not do that until the extra directory level buys something concrete.
 
 ## Backend Package Structure
 
@@ -126,51 +121,30 @@ Use package-by-feature with a small shared kernel:
 
 ```text
 dev.jiaming.ai_interview
-  resume/
-    controller/
-    service/
-    domain/
-    repository/
-    parser/
   assessment/
-    controller/
-    service/
-    domain/
-    repository/
-    scoring/
-  interview/
-    controller/
-    service/
-    domain/
-    repository/
-  ai/
-    llm/
-    embedding/
-    prompt/
-    rag/
-    safety/
-  storage/
-    object/
-    virus/
+  coach/
   common/
-    config/
-    error/
-    security/
-    web/
-    persistence/
+  gemini/
+  interview/
+  rag/
+  resume/
+  storage/
 ```
 
-Important boundary: controllers should only handle HTTP concerns, services own workflows, domain objects own invariants, repositories own persistence, and `ai/` owns model-specific integration details.
+Important boundary: controllers should only handle HTTP concerns, `coach/` owns AI workflows, `rag/` owns context retrieval, `gemini/` owns provider calls, feature packages own their persistence, and `storage/` owns object storage. Add subpackages only after a package has enough files or mixed responsibilities to justify it.
 
 ## Core Domain Model
 
-The prototype is single-user and single-resume. API requests are unauthenticated and operate on the latest uploaded resume in memory. Multi-user ownership can be added later after the resume and interview workflow is working end to end.
+The prototype is single-user and single-resume from the API perspective. API requests are unauthenticated and operate on the latest uploaded resume, but the backend persists app-owned data in the `ai_interview_app` schema using an internal local user. Multi-user ownership can be added later after the resume and interview workflow is working end to end.
 
 ### Resume
 
 - `id`
 - `original_filename`
 - `content_type`
+- `detected_content_type`
+- `size_bytes`
+- `storage_key`
 - `raw_text`
 - `normalized_text`
 - `detected_role`
@@ -203,7 +177,7 @@ The prototype is single-user and single-resume. API requests are unauthenticated
 - `weaknesses_json`
 - `recommendations_json`
 - `model_name`
-- `prompt_version`
+- `prompt_name`
 - `created_at`
 
 ### InterviewSession
@@ -245,11 +219,11 @@ Use pgvector for RAG retrieval, semantic matching, and deduplication:
 - `resume_chunks`: resume section chunks and embeddings.
 - `job_description_chunks`: job requirement chunks and embeddings.
 - `question_embeddings`: generated question embeddings for deduplication.
-- `answer_embeddings`: optional in V1, useful for analytics and future coaching.
+- `answer_embeddings`: optional in the initial release, useful for analytics and future coaching.
 
 ## RAG Design
 
-RAG is required in V1. The application should not ask Gemini to evaluate a whole unbounded resume and job description directly when a scoped retrieval step can provide better context.
+RAG is required in the initial release. The application should not ask Gemini to evaluate a whole unbounded resume and job description directly when a scoped retrieval step can provide better context.
 
 ### Indexing Pipeline
 
@@ -301,7 +275,7 @@ For answer feedback, retrieve:
 
 ### Retrieval Defaults
 
-- Embedding dimensions: `768`.
+- Embedding dimensions: `1024`.
 - Similarity metric: cosine distance.
 - Default top K: `8`.
 - Store enough metadata to filter by `userId`, `resumeId`, `jobDescriptionId`, and `sourceType`.
@@ -373,7 +347,7 @@ Example response shape:
 - Behavioral examples.
 - Role-specific tooling and domain knowledge.
 
-For V1, generate 8 to 12 questions per session:
+For the initial release, generate 8 to 12 questions per session:
 
 - 3 resume-specific questions.
 - 2 technical fundamentals questions.
@@ -397,7 +371,7 @@ The backend should enforce JSON schema output from the model and retry once with
 
 ## REST API Surface
 
-The current prototype is no-auth, single-resume, and does not persist assessments or interview sessions yet.
+The current prototype is no-auth and single-resume from the API perspective, with uploaded resumes, assessments, interview questions, and answer feedback persisted for an internal local user.
 
 ### Resumes
 
@@ -473,7 +447,7 @@ apps/web/
 
 First screen should be the working dashboard, not a marketing page. It should show the latest uploaded resume, assessment score, active interview session, and a clear upload action.
 
-## V1 User Flow
+## Initial User Flow
 
 1. Upload resume or paste resume text.
 2. Optionally paste job description.
@@ -492,7 +466,7 @@ Enable pgvector:
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Use vector dimensions matching the selected embedding model. V1 uses Google GenAI `text-embedding-004` with 768 dimensions, but this must remain configurable because embedding providers and model options vary.
+Use vector dimensions matching the selected embedding model. The initial release uses Google GenAI `gemini-embedding-001` configured to 1024 dimensions, but this must remain configurable because embedding providers and model options vary.
 
 Recommended vector indexes:
 
@@ -517,9 +491,9 @@ Do not use Redis as the source of truth for assessments, answers, or user histor
 
 ## Object Storage Usage
 
-Object storage is not required for the first prototype. The current upload API extracts text from the uploaded file and keeps only the latest resume result in memory.
+The current upload API extracts text from the uploaded file, stores the original file in LocalStack S3-compatible storage, and persists the latest processed resume for the local internal user.
 
-Use RustFS or MinIO-compatible S3 APIs later for:
+Use the S3-compatible storage boundary for:
 
 - Original uploaded resumes.
 - Extracted text snapshots if needed.
@@ -529,7 +503,7 @@ Store only object keys in PostgreSQL. Keep object storage private and serve down
 
 ## Background Processing
 
-V1 can process synchronously for a small prototype, but the backend should be designed around jobs:
+The initial release can process synchronously for a small prototype, but the backend should be designed around jobs:
 
 - `resume_text_extraction`
 - `resume_embedding`
@@ -540,7 +514,7 @@ V1 can process synchronously for a small prototype, but the backend should be de
 
 Start with Spring `@Async` or a simple database-backed job table. Add a queue only after there is real need. Redis can provide locks, but PostgreSQL should keep durable job state.
 
-For the current prototype, resume upload and text extraction run synchronously in the request and store only the latest processed resume in memory.
+For the current prototype, resume upload and text extraction run synchronously in the request and persist the latest processed resume for a local internal user.
 
 ## Security and Privacy
 
@@ -555,19 +529,19 @@ For the current prototype, resume upload and text extraction run synchronously i
 
 ## Prompt and AI Output Management
 
-Keep prompts in versioned backend files or database records:
+Keep prompts in named backend files or database records:
 
 ```text
 src/main/resources/prompts/
-  resume-assessment-v1.md
-  interview-question-generation-v1.md
-  answer-feedback-v1.md
+  resume-assessment.md
+  interview-question-generation.md
+  answer-feedback.md
 ```
 
 Every AI-generated persisted record should store:
 
 - `model_name`
-- `prompt_version`
+- `prompt_name`
 - `input_hash`
 - `source_context_ids`
 - `created_at`
@@ -580,15 +554,15 @@ This makes evaluations and prompt migrations possible.
 
 - Restructure as monorepo or consciously keep backend at root.
 - Add Next.js frontend.
-- Add Docker Compose for PostgreSQL with pgvector, Redis, and RustFS.
+- Add Docker Compose for PostgreSQL with pgvector, Redis, and LocalStack S3.
 - Add Flyway.
 - Add basic health endpoint.
 
 ### Milestone 2: Resume Upload
 
 - Implement resume upload and text extraction.
-- Keep the latest extracted resume in memory for the prototype.
-- Defer object storage and database persistence.
+- Persist the latest extracted resume for the local internal user.
+- Store original uploaded files in S3-compatible object storage.
 
 ### Milestone 3: Assessment
 
@@ -617,9 +591,9 @@ This makes evaluations and prompt migrations possible.
 ## Design Decisions
 
 - Keep AI orchestration in the backend so prompts, model keys, and scoring logic are not exposed to the browser.
-- Use Gemini as the V1 AI provider for chat and embeddings.
+- Use Gemini as the initial AI provider for chat and embeddings.
 - Use PostgreSQL as the durable source of truth and pgvector for RAG semantic retrieval.
 - Use Redis only for ephemeral workflow concerns.
 - Defer object storage in the prototype; when persistence is added, store uploaded files in object storage rather than PostgreSQL.
 - Treat every AI response as untrusted data until it passes schema validation.
-- Keep the first version text-only to reduce product and infrastructure complexity.
+- Keep the initial release text-only to reduce product and infrastructure complexity.

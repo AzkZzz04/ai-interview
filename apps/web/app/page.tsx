@@ -633,6 +633,8 @@ export default function Home() {
                       </article>
                     ))}
                   </div>
+
+                  <EvidenceRefs ids={assessment.sourceContextIds} />
                 </>
               ) : (
                 <EmptyState
@@ -683,6 +685,8 @@ export default function Home() {
                       ))}
                     </div>
 
+                    <EvidenceRefs ids={activeQuestion.sourceContextIds} />
+
                     <textarea
                       className="answer-textarea"
                       placeholder="Type your answer here."
@@ -732,6 +736,7 @@ export default function Home() {
                             <span>{answerFeedback.followUpQuestion}</span>
                           </div>
                         ) : null}
+                        <EvidenceRefs ids={answerFeedback.sourceContextIds} />
                       </div>
                     ) : null}
                   </div>
@@ -766,6 +771,24 @@ function InsightList({
       {items.map((item) => (
         <p key={item}>{item}</p>
       ))}
+    </div>
+  );
+}
+
+function EvidenceRefs({ ids }: { ids?: string[] }) {
+  const uniqueIds = [...new Set(ids?.filter(Boolean) ?? [])];
+  if (!uniqueIds.length) {
+    return null;
+  }
+
+  return (
+    <div className="evidence-refs" aria-label="Retrieved evidence">
+      <strong>Evidence</strong>
+      <div>
+        {uniqueIds.map((id) => (
+          <span key={id}>{id}</span>
+        ))}
+      </div>
     </div>
   );
 }

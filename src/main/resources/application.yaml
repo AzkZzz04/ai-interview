@@ -17,6 +17,7 @@ spring:
       max-request-size: ${RESUME_MAX_REQUEST_SIZE:12MB}
   flyway:
     enabled: true
+    baseline-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: validate
@@ -37,15 +38,15 @@ spring:
           api-key: ${GEMINI_API_KEY:}
           text:
             options:
-              model: ${GEMINI_EMBEDDING_MODEL:text-embedding-004}
+              model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
               task-type: RETRIEVAL_DOCUMENT
-              dimensions: ${GEMINI_EMBEDDING_DIMENSIONS:768}
+              dimensions: ${GEMINI_EMBEDDING_DIMENSIONS:1024}
     vectorstore:
       pgvector:
         initialize-schema: false
         index-type: HNSW
         distance-type: COSINE_DISTANCE
-        dimensions: ${RAG_EMBEDDING_DIMENSIONS:768}
+        dimensions: ${RAG_EMBEDDING_DIMENSIONS:1024}
         schema-name: public
         table-name: vector_store
 
@@ -65,11 +66,11 @@ app:
     max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
     thinking-budget: ${GEMINI_THINKING_BUDGET:0}
   rag:
-    embedding-dimensions: ${RAG_EMBEDDING_DIMENSIONS:768}
+    embedding-dimensions: ${RAG_EMBEDDING_DIMENSIONS:1024}
     default-top-k: ${RAG_DEFAULT_TOP_K:8}
   storage:
-    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    endpoint: ${S3_ENDPOINT:http://localhost:4566}
     region: ${S3_REGION:us-east-1}
     bucket: ${S3_BUCKET:ai-interview}
-    access-key: ${S3_ACCESS_KEY:ai_interview}
-    secret-key: ${S3_SECRET_KEY:ai_interview_secret}
+    access-key: ${S3_ACCESS_KEY:test}
+    secret-key: ${S3_SECRET_KEY:test}

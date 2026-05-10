@@ -24,6 +24,7 @@ repositories {
 }
 
 extra["springAiVersion"] = "2.0.0-M4"
+extra["awsSdkVersion"] = "2.29.52"
 
 dependencies {
 	implementation("org.flywaydb:flyway-core")
@@ -39,6 +40,8 @@ dependencies {
 	implementation("org.apache.pdfbox:pdfbox:3.0.5")
 	implementation("org.apache.tika:tika-core:3.2.3")
 	implementation("org.apache.tika:tika-parsers-standard-package:3.2.3")
+	implementation("software.amazon.awssdk:s3")
+	implementation("software.amazon.awssdk:apache-client")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
 	annotationProcessor("org.projectlombok:lombok")
@@ -51,6 +54,7 @@ dependencies {
 dependencyManagement {
 	imports {
 		mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+		mavenBom("software.amazon.awssdk:bom:${property("awsSdkVersion")}")
 	}
 }
 

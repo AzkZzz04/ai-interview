@@ -33,20 +33,20 @@ services:
       timeout: 3s
       retries: 20
 
-  rustfs:
-    image: rustfs/rustfs:latest
-    container_name: ai-interview-rustfs
-    command: ["/data"]
+  localstack:
+    image: localstack/localstack:3
+    container_name: ai-interview-localstack
     environment:
-      RUSTFS_ACCESS_KEY: rustfsadmin
-      RUSTFS_SECRET_KEY: rustfsadmin
+      SERVICES: s3
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      DEFAULT_REGION: us-east-1
     ports:
-      - "${RUSTFS_API_PORT:-9000}:9000"
-      - "${RUSTFS_CONSOLE_PORT:-9001}:9001"
+      - "${LOCALSTACK_PORT:-4566}:4566"
     volumes:
-      - rustfs-data:/data
+      - localstack-data:/var/lib/localstack
 
 volumes:
   postgres-data:
   redis-data:
-  rustfs-data:
+  localstack-data:

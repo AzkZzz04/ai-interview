@@ -584,6 +584,39 @@ textarea:focus {
   background: #dbeafe;
 }
 
+.evidence-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.evidence-refs strong {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.evidence-refs div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evidence-refs span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--teal);
+  background: #f0fdfa;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .empty-state {
   min-height: 220px;
   display: grid;
@@ -708,7 +741,8 @@ textarea:focus {
 }
 
 .feedback-details,
-.feedback-follow-up {
+.feedback-follow-up,
+.feedback .evidence-refs {
   grid-column: 1 / -1;
   border-top: 1px solid #bbf7d0;
   padding-top: 10px;
