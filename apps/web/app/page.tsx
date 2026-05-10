@@ -1,39 +1,31 @@
 "use client";
 
 import {
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  ClipboardCheck,
   FileText,
   Gauge,
   Loader2,
   MessageSquareText,
   RefreshCw,
-  Send,
-  Sparkles,
-  Upload
+  Sparkles
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { AssessmentPanel } from "@/components/AssessmentPanel";
+import { InterviewPracticePanel } from "@/components/InterviewPracticePanel";
+import {
+  ExtractionProgress,
+  ResumeInputPanel,
+  UploadedResume
+} from "@/components/ResumeInputPanel";
 import { createAiAnswerFeedback, createAiAssessment, createAiQuestions } from "@/lib/api/ai";
 import { getCurrentResume, ResumeUploadResponse, uploadResume } from "@/lib/api/resumes";
 import {
   AnswerFeedback,
   Assessment,
-  AssessmentScoreKey,
   createAssessment,
   createQuestions,
   InterviewQuestion,
   scoreAnswer
 } from "@/lib/mockAssessment";
-
-const scoreLabels: Record<AssessmentScoreKey, string> = {
-  technicalDepth: "Technical depth",
-  impact: "Impact",
-  clarity: "Clarity",
-  relevance: "Role relevance",
-  ats: "ATS"
-};
 
 const starterResume = `EXPERIENCE
 Backend Engineer, Example Systems
@@ -46,20 +38,6 @@ Java, Spring Boot, PostgreSQL, Redis, Next.js, TypeScript, observability
 
 EDUCATION
 B.S. Computer Science`;
-
-type UploadedResume = {
-  name: string;
-  size: number;
-  extension: string;
-  status: "extracting" | "ready" | "error";
-  message: string;
-};
-
-type ExtractionProgress = {
-  startedAt: number;
-  percent: number;
-  stage: string;
-};
 
 type ResumeFileInfo = {
   name: string;
@@ -485,340 +463,45 @@ export default function Home() {
         </header>
 
         <section className="layout-grid" id="resume">
-          <div className="panel input-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Resume input</p>
-                <h2>Source material</h2>
-              </div>
-              <label className="icon-button" title="Upload resume">
-                <Upload size={18} aria-hidden="true" />
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.text,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
-                  onChange={handleResumeUpload}
-                  disabled={isUploadingResume}
-                />
-              </label>
-            </div>
-
-            {uploadedResume ? (
-              <div className={`upload-summary ${uploadedResume.status}`}>
-                {uploadedResume.status === "extracting" ? (
-                  <Loader2 className="spin" size={18} aria-hidden="true" />
-                ) : (
-                  <FileText size={18} aria-hidden="true" />
-                )}
-                <div>
-                  <strong>{uploadedResume.name}</strong>
-                  <span>
-                    {formatFileSize(uploadedResume.size)} · {uploadedResume.message}
-                  </span>
-                  {uploadedResume.status === "error" ? (
-                    <button className="recover-upload-button" type="button" onClick={recoverLatestResumeFromBackend}>
-                      Use backend text
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
-            {isUploadingResume && extractionProgress ? (
-              <div className="upload-progress" role="status" aria-live="polite">
-                <div className="upload-progress-header">
-                  <strong>{extractionProgress.stage}</strong>
-                  <span>{elapsedSeconds}s</span>
-                </div>
-                <div className="progress-track" aria-label={`Extraction progress ${extractionProgress.percent}%`}>
-                  <span style={{ width: `${extractionProgress.percent}%` }} />
-                </div>
-              </div>
-            ) : null}
-
-            <label className="field">
-              <span>Target role</span>
-              <input value={targetRole} onChange={(event) => setTargetRole(event.target.value)} />
-            </label>
-
-            <label className="field">
-              <span>Seniority</span>
-              <select value={seniority} onChange={(event) => setSeniority(event.target.value)}>
-                <option>Entry-level</option>
-                <option>Mid-level</option>
-                <option>Senior</option>
-                <option>Staff+</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Resume text</span>
-              <textarea
-                ref={resumeTextareaRef}
-                className="resume-textarea"
-                placeholder={
-                  isUploadingResume
-                    ? "Extracting resume text..."
-                    : "Paste resume text, or upload PDF, DOC, DOCX, TXT, or Markdown."
-                }
-                value={resumeText}
-                onChange={(event) => setResumeText(event.target.value)}
-                readOnly={isUploadingResume}
-              />
-            </label>
-
-            <label className="field">
-              <span>Job description</span>
-              <textarea
-                className="jd-textarea"
-                placeholder="Paste a job description to make scoring and questions role-specific."
-                value={jobDescription}
-                onChange={(event) => setJobDescription(event.target.value)}
-              />
-            </label>
-
-            {analysisNotice ? (
-              <div className="ai-notice" role="status">
-                {analysisNotice}
-              </div>
-            ) : null}
-
-            <button className="primary-button" type="button" onClick={runAssessment} disabled={isAnalyzing || isUploadingResume}>
-              {isAnalyzing ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <Sparkles size={18} aria-hidden="true" />}
-              {isAnalyzing ? "Analyzing with Gemini" : "Analyze resume"}
-              <ArrowRight size={16} aria-hidden="true" />
-            </button>
-          </div>
+          <ResumeInputPanel
+            uploadedResume={uploadedResume}
+            extractionProgress={extractionProgress}
+            elapsedSeconds={elapsedSeconds}
+            targetRole={targetRole}
+            seniority={seniority}
+            resumeText={resumeText}
+            jobDescription={jobDescription}
+            analysisNotice={analysisNotice}
+            isAnalyzing={isAnalyzing}
+            isUploadingResume={isUploadingResume}
+            resumeTextareaRef={resumeTextareaRef}
+            onResumeUpload={handleResumeUpload}
+            onRecoverLatestResume={recoverLatestResumeFromBackend}
+            onTargetRoleChange={setTargetRole}
+            onSeniorityChange={setSeniority}
+            onResumeTextChange={setResumeText}
+            onJobDescriptionChange={setJobDescription}
+            onRunAssessment={runAssessment}
+          />
 
           <div className="right-rail">
-            <section className="panel" id="assessment">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">{targetRole} · {seniority}</p>
-                  <h2>Assessment</h2>
-                </div>
-                <div className="score-ring" aria-label={`Overall score ${assessment?.overallScore ?? 0}`}>
-                  {assessment?.overallScore ?? "--"}
-                </div>
-              </div>
-
-              {assessment ? (
-                <>
-                  <div className="score-grid">
-                    {(Object.keys(assessment.scores) as AssessmentScoreKey[]).map((key) => (
-                      <div className="metric" key={key}>
-                        <div>
-                          <span>{scoreLabels[key]}</span>
-                          <strong>{assessment.scores[key]}</strong>
-                        </div>
-                        <div className="meter">
-                          <span style={{ width: `${assessment.scores[key]}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="insight-columns">
-                    <InsightList title="Strengths" items={assessment.strengths} tone="positive" />
-                    <InsightList title="Gaps" items={assessment.weaknesses} tone="warning" />
-                  </div>
-
-                  <div className="recommendation-list">
-                    {assessment.recommendations.map((recommendation) => (
-                      <article className="recommendation" key={recommendation.message}>
-                        <span className={`priority ${recommendation.priority}`}>{recommendation.priority}</span>
-                        <div>
-                          <strong>{recommendation.section}</strong>
-                          <p>{recommendation.message}</p>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-
-                  <EvidenceRefs ids={assessment.sourceContextIds} />
-                </>
-              ) : (
-                <EmptyState
-                  icon={<BarChart3 size={24} aria-hidden="true" />}
-                  title="No assessment yet"
-                  text="Run the analysis to score the resume and prepare interview questions."
-                />
-              )}
-            </section>
-
-            <section className="panel" id="interview">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">{questions.length || 0} questions</p>
-                  <h2>Interview practice</h2>
-                </div>
-                <ClipboardCheck size={22} aria-hidden="true" />
-              </div>
-
-              {activeQuestion ? (
-                <div className="interview-layout">
-                  <div className="question-list">
-                    {questions.map((question) => (
-                      <button
-                        className={question.id === activeQuestion.id ? "question-tab active" : "question-tab"}
-                        key={question.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveQuestionId(question.id);
-                          setAnswerFeedback(null);
-                        }}
-                      >
-                        <span>{question.category}</span>
-                        <small>{question.difficulty}</small>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="answer-panel">
-                    <div className="question-copy">
-                      <span>{activeQuestion.category}</span>
-                      <p>{activeQuestion.questionText}</p>
-                    </div>
-
-                    <div className="signal-list">
-                      {activeQuestion.expectedSignals.map((signal) => (
-                        <span key={signal}>{signal}</span>
-                      ))}
-                    </div>
-
-                    <EvidenceRefs ids={activeQuestion.sourceContextIds} />
-
-                    <textarea
-                      className="answer-textarea"
-                      placeholder="Type your answer here."
-                      value={answer}
-                      onChange={(event) => setAnswer(event.target.value)}
-                    />
-
-                    <button
-                      className="primary-button compact"
-                      type="button"
-                      onClick={submitAnswer}
-                      disabled={isSubmittingAnswer || !answer.trim()}
-                    >
-                      {isSubmittingAnswer ? <Loader2 className="spin" size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
-                      {isSubmittingAnswer ? "Scoring answer" : "Get feedback"}
-                    </button>
-
-                    {answerFeedback ? (
-                      <div className="feedback">
-                        <div className="feedback-score">
-                          <CheckCircle2 size={18} aria-hidden="true" />
-                          <strong>{answerFeedback.score}</strong>
-                        </div>
-                        <div>
-                          <p>{answerFeedback.summary}</p>
-                          <span>{answerFeedback.nextStep}</span>
-                        </div>
-                        {answerFeedback.strengths?.length || answerFeedback.gaps?.length ? (
-                          <div className="feedback-details">
-                            {answerFeedback.strengths?.length ? (
-                              <div>
-                                <strong>Working</strong>
-                                {answerFeedback.strengths.map((item) => <span key={item}>{item}</span>)}
-                              </div>
-                            ) : null}
-                            {answerFeedback.gaps?.length ? (
-                              <div>
-                                <strong>Improve</strong>
-                                {answerFeedback.gaps.map((item) => <span key={item}>{item}</span>)}
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {answerFeedback.followUpQuestion ? (
-                          <div className="feedback-follow-up">
-                            <strong>Follow-up</strong>
-                            <span>{answerFeedback.followUpQuestion}</span>
-                          </div>
-                        ) : null}
-                        <EvidenceRefs ids={answerFeedback.sourceContextIds} />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<MessageSquareText size={24} aria-hidden="true" />}
-                  title="Questions are waiting"
-                  text="Analyze a resume to generate a role-aware interview set."
-                />
-              )}
-            </section>
+            <AssessmentPanel targetRole={targetRole} seniority={seniority} assessment={assessment} />
+            <InterviewPracticePanel
+              questions={questions}
+              activeQuestion={activeQuestion}
+              answer={answer}
+              answerFeedback={answerFeedback}
+              isSubmittingAnswer={isSubmittingAnswer}
+              onActiveQuestionChange={setActiveQuestionId}
+              onAnswerChange={setAnswer}
+              onClearAnswerFeedback={() => setAnswerFeedback(null)}
+              onSubmitAnswer={submitAnswer}
+            />
           </div>
         </section>
       </section>
     </main>
   );
-}
-
-function InsightList({
-  title,
-  items,
-  tone
-}: {
-  title: string;
-  items: string[];
-  tone: "positive" | "warning";
-}) {
-  return (
-    <div className={`insight-list ${tone}`}>
-      <strong>{title}</strong>
-      {items.map((item) => (
-        <p key={item}>{item}</p>
-      ))}
-    </div>
-  );
-}
-
-function EvidenceRefs({ ids }: { ids?: string[] }) {
-  const uniqueIds = [...new Set(ids?.filter(Boolean) ?? [])];
-  if (!uniqueIds.length) {
-    return null;
-  }
-
-  return (
-    <div className="evidence-refs" aria-label="Retrieved evidence">
-      <strong>Evidence</strong>
-      <div>
-        {uniqueIds.map((id) => (
-          <span key={id}>{id}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  text
-}: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="empty-state">
-      {icon}
-      <strong>{title}</strong>
-      <p>{text}</p>
-    </div>
-  );
-}
-
-function formatFileSize(size: number) {
-  if (size < 1024) {
-    return `${size} B`;
-  }
-  if (size < 1024 * 1024) {
-    return `${Math.round(size / 1024)} KB`;
-  }
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function readTextFile(file: File) {
