@@ -45,7 +45,11 @@ docker compose --profile managed-postgres up -d
 
 The managed PostgreSQL service binds to `localhost:55432` by default, or to `POSTGRES_PORT` if set.
 
-The backend defaults to Redis on `localhost:6379`. If you want the app to use the Compose-managed Redis instance instead, set `REDIS_PORT=6380` in `.env`.
+The backend defaults to Redis on `localhost:6379`. The bundled Compose Redis service publishes container port `6379` to `localhost:6380` by default, so set `REDIS_PORT=6380` only if you are using that Compose-managed Redis instance. If your Docker Redis is already mapped to host port `6379`, leave `REDIS_PORT=6379`.
+
+Redis is used for operational guardrails only: per-client limits on expensive upload/AI requests and short-lived duplicate in-flight locks around Gemini calls. PostgreSQL remains the durable source of truth.
+
+Mutation endpoints also support an optional `Idempotency-Key` header. When present, Redis stores the successful response for the same client, endpoint, and request fingerprint for `REDIS_IDEMPOTENCY_TTL_SECONDS` seconds. Retrying the same request with the same key returns the cached response; reusing the key with a different payload returns `409`.
 
 The backend stores original uploaded resume files in S3-compatible storage and defaults to LocalStack:
 

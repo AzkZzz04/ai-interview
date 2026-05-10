@@ -68,6 +68,18 @@ app:
   rag:
     embedding-dimensions: ${RAG_EMBEDDING_DIMENSIONS:1024}
     default-top-k: ${RAG_DEFAULT_TOP_K:8}
+  redis:
+    rate-limit:
+      enabled: ${REDIS_RATE_LIMIT_ENABLED:true}
+      window-seconds: ${REDIS_RATE_LIMIT_WINDOW_SECONDS:60}
+      ai-limit: ${REDIS_AI_RATE_LIMIT:12}
+      upload-limit: ${REDIS_UPLOAD_RATE_LIMIT:20}
+    in-flight:
+      enabled: ${REDIS_IN_FLIGHT_LOCK_ENABLED:true}
+      lock-ttl-seconds: ${REDIS_IN_FLIGHT_LOCK_TTL_SECONDS:120}
+    idempotency:
+      enabled: ${REDIS_IDEMPOTENCY_ENABLED:true}
+      ttl-seconds: ${REDIS_IDEMPOTENCY_TTL_SECONDS:86400}
   storage:
     endpoint: ${S3_ENDPOINT:http://localhost:4566}
     region: ${S3_REGION:us-east-1}

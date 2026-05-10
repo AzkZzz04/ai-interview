@@ -482,9 +482,16 @@ USING hnsw (embedding vector_cosine_ops);
 
 ## Redis Usage
 
-- Rate limit AI-heavy endpoints per client/session.
-- Store idempotency tokens for upload and assessment requests.
-- Cache short-lived assessment status.
+The current implementation uses Redis as an operational guardrail, not as product storage:
+
+- Rate limit AI-heavy endpoints per client.
+- Rate limit resume uploads per client.
+- Store short-lived in-flight locks for duplicate assessment, question-generation, and answer-feedback calls.
+- Cache successful mutation responses for retry when clients send an `Idempotency-Key` header.
+
+Later options:
+
+- Cache short-lived assessment status if long-running background jobs are introduced.
 - Lock background processing jobs.
 
 Do not use Redis as the source of truth for assessments, answers, or user history.

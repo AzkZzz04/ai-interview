@@ -1,4 +1,5 @@
 import { AnswerFeedback, Assessment, InterviewQuestion } from "@/lib/mockAssessment";
+import { createIdempotencyKey } from "@/lib/api/idempotency";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8080";
 const REQUEST_TIMEOUT_MS = 120_000;
@@ -35,10 +36,12 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const idempotencyKey = createIdempotencyKey(path);
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey
       },
       body: JSON.stringify(body),
       signal: controller.signal

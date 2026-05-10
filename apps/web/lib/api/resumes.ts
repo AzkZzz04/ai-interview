@@ -1,3 +1,5 @@
+import { createIdempotencyKey } from "@/lib/api/idempotency";
+
 export type ResumeUploadResponse = {
   id: string;
   originalFilename: string;
@@ -25,8 +27,12 @@ export async function uploadResume(file: File): Promise<ResumeUploadResponse> {
   const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
 
   try {
+    const idempotencyKey = createIdempotencyKey("resume-upload");
     const response = await fetch(`${API_BASE_URL}/api/resumes`, {
       method: "POST",
+      headers: {
+        "Idempotency-Key": idempotencyKey
+      },
       body: formData,
       signal: controller.signal
     });

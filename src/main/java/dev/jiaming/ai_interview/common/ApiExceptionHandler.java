@@ -3,10 +3,12 @@ package dev.jiaming.ai_interview.common;
 import java.time.Instant;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import dev.jiaming.ai_interview.gemini.GeminiException;
 import dev.jiaming.ai_interview.resume.ResumeExtractionException;
@@ -34,5 +36,16 @@ public class ApiExceptionHandler {
 			"error", "Gemini request failed",
 			"message", exception.getMessage()
 		);
+	}
+
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<Map<String, Object>> handleResponseStatusException(ResponseStatusException exception) {
+		return ResponseEntity.status(exception.getStatusCode())
+			.body(Map.of(
+				"timestamp", Instant.now().toString(),
+				"status", exception.getStatusCode().value(),
+				"error", exception.getStatusCode().toString(),
+				"message", exception.getReason() == null ? "Request failed" : exception.getReason()
+			));
 	}
 }
